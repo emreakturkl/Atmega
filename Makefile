@@ -19,6 +19,8 @@ COMPILE+    = ${CC+} ${CFLAGS+}
 PROGRAMMER  = -c ${PLATFORM} -P ${PORT} -b ${BAUDRATE}
 AVRDUDE     = avrdude $(PROGRAMMER) -p $(CPU)
 
+ARDUINO    = 1
+
 # ----------------------------------------------------------------------
 
 SOURCE_DIR = .
@@ -42,6 +44,12 @@ EEPROM                       = $(LIBRARY_DIR)EEPROM/src/
 
 TARGET = main
 
+ifeq (${ARDUINO}, 1)
+	LIBCORE = libcore.a
+else
+	LIBCORE = 
+endif
+
 EXTERNAL_OBJS = $(OBJECT_DIR)Wire.o \
 								$(OBJECT_DIR)twi.o \
 								$(OBJECT_DIR)SPI.o \
@@ -60,15 +68,15 @@ $(BIN)${TARGET}.hex: $(BIN)${TARGET}.elf
 	avr-objcopy -R .eeprom -O ihex $^ $@
 	avr-size -A $^
 
-$(BIN)${TARGET}.elf: $(OBJECT_DIR)${TARGET}.o libcore.a
+$(BIN)${TARGET}.elf: $(OBJECT_DIR)${TARGET}.o ${LIBCORE}
 	if ! [ -d "$(PATH_)/$(BIN)" ]; then mkdir $(BIN); fi;
 	${COMPILE} -Wl,--gc-sections -lm -o $@ $^
 
-$(OBJECT_DIR)${TARGET}.o: ${TARGET}.cpp
+$(OBJECT_DIR)${TARGET}.o: ${TARGET}.cpp 
 	if ! [ -d "$(PATH_)/$(OBJECT_DIR)" ]; then mkdir $(OBJECT_DIR); fi;
 	${COMPILE+} ${INCLUDE_LIB} ${INCLUDE_PIN_STANDART} -I$(WIRE) -I$(SPI) -I$(SOFTWARE_SERIAL) -I$(EEPROM) -c $^ -o $@
 
-libcore.a: ${ARDUINO_OBJS} ${EXTERNAL_OBJS}
+${LIBCORE}: ${ARDUINO_OBJS} ${EXTERNAL_OBJS}
 	avr-gcc-ar rcs $@ $^ 
 
 # EXTERNAL LIBRARY
